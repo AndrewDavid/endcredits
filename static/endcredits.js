@@ -1,7 +1,9 @@
 /*
- * jQuery endcredits Plugin
+ * jQuery endcredits Plugin (V2.0)
  *
- * Copyright (c) 2014 Daniel Malkafly <malk@epichail.com>
+ * Orignal code by Daniel Malkafly <malk@epichail.com> [https://github.com/Malkafly/endcredits]
+ * Version 2 by Andrew-David Jahchan <hello@andrewdavid.net>
+ * 
  * Dual licensed under the MIT or GPL Version 2 licenses or later.
  *
  * This program is distributed in the hope that it will be useful,
@@ -10,51 +12,71 @@
  */
 $(document).ready(function () {
 
-    $('a[name=creditos]').click(function (e) {
-        e.preventDefault();
+    //VARIABLES
+    var endcredits_credits_position = 0;
+    var endcredits_total_animation_time = 0;
+    var endcredits_speeding = false;
+    var endcredits_interval;
         
-        var maskHeight = $(document).height();
-        var maskWidth = $(window).width();
+    var endcredits_maskHeight = $(window).height();
+    var endcredits_maskWidth = $(window).width();
 
-        $('#titles').css({
-            'width': maskWidth,
-            'height': maskHeight
-        });
-
-        $('#titles').fadeIn(1000);
-        $('#titles').fadeTo("slow");
-        $('#titles').fadeIn();
-        $('#credits').css("left", (($('#credits').parent().width() - $('#credits').outerWidth()) / 2) + "px");
-        $('#credits').css("bottom", "-" + (maskHeight * 2) + "px");
-        $('#credits').show('slow');
-
-        $('#credits').animate({
-            bottom: maskHeight + "px"
-        }, {
-            duration: 30000,
+    function endcredits_animate_credits(){
+        $('#credits').stop(true, false).animate({bottom: endcredits_maskHeight + "px"}, {
+            duration: endcredits_total_animation_time,
+            easing: 'linear',
             complete: function () {
-                $('#titles').fadeOut();
-                $('.window').fadeOut();
-                $('#credits').css("bottom", "-" + (maskHeight * 2) + "px");
+                $('#titles').fadeOut('fast');
             },
-            step: function (n, t) {
-                var pos = $(this).position();
-                console.log('X: ' + pos.left.toFixed(2) + ' Y: ' + pos.top.toFixed(2));
+            step: function(now, fx){
+                endcredits_credits_position = fx.pos;
+            } 
+        }); 
+    }
+
+    $(document).on('click', 'a[name=creditos]', function() {
+        $('#titles').removeAttr('style').fadeIn('slow');
+        $('#credits').css({"left": ((endcredits_maskWidth - $('#credits').outerWidth()) / 2) + "px", "bottom": "-" + $('#credits').outerHeight() + "px"}).show();
+        
+        endcredits_total_animation_time = ($('#credits').outerHeight() * 2500) / 100;
+        endcredits_animate_credits();
+
+        return false;
+    });
+
+    $(document).on('mousedown mouseup', '#titles', function(event) {
+        if(event.type === 'mousedown')
+        {
+            endcredits_speeding = false;
+            var clickedon = $.now();
+
+            endcredits_interval = setInterval(function(){
+                if($.now() > (clickedon + 500))
+                {
+                    endcredits_speeding = true;
+                    endcredits_total_animation_time = (endcredits_total_animation_time - (endcredits_credits_position * endcredits_total_animation_time))/4;
+                    endcredits_animate_credits();
+
+                    clearInterval(endcredits_interval);
+                }
+            }, 250);
+        }
+        else if(event.type === 'mouseup')
+        {
+            if(!endcredits_speeding)
+            {
+                endcredits_speeding = false;
+                clearInterval(endcredits_interval);
+                $('#titles').fadeOut('fast', function(){
+                    $('#credits').stop(true, false);
+                });
             }
-        });
-
-    });
-
-    $('.window .close').click(function (e) {
-        e.preventDefault();
-        $('#credits').css("bottom", "-" + ($(document).height() * 2) + "px");
-        $('#titles').hide();
-        $('.window').hide();
-    });
-
-    $('#titles').click(function () {
-        $(this).hide();
-        $('#credits').css("bottom", "-" + ($(document).height() * 2) + "px");
-        $('.window').hide();
+            else
+            {
+                clearInterval(endcredits_interval);
+                endcredits_total_animation_time = (endcredits_total_animation_time - (endcredits_credits_position * endcredits_total_animation_time))*4;
+                endcredits_animate_credits();
+            }
+        }
     });
 });
